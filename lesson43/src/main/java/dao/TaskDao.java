@@ -75,27 +75,117 @@ public class TaskDao {
   }
 
   public int deleteAll() {
-
     return 1;
   }
 
   public Task getById(Integer id) {
-    return null;
+    String sql = "SELECT task_id, title, finished, created_date FROM task WHERE task_id = "+id;
+    try(Connection connection = dataSource.getConnection();
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql)
+    ) {
+      if (resultSet.next()) {
+        final Task task = new Task(
+                resultSet.getString(2),
+                resultSet.getBoolean(3),
+                resultSet.getTimestamp(4).toLocalDateTime()
+        );
+        task.setId(id);
+        return task;
+      }
+      else {
+        return null;
+      }
+
+    } catch (SQLException throwables) {
+      throw new RuntimeException(throwables);
+
+    }
   }
 
   public List<Task> findAllNotFinished() {
-    return Collections.emptyList();
+    List<Task> tasks = new ArrayList<>();
+    String sql = "SELECT task_id, title, finished, created_date FROM task WHERE finished = false ORDER BY task_id";
+    try(Connection connection = dataSource.getConnection();
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql)
+    ) {
+      while(resultSet.next()) {
+        final Task task = new Task(
+                resultSet.getString(2),
+                resultSet.getBoolean(3),
+                resultSet.getTimestamp(4).toLocalDateTime()
+        );
+        task.setId(resultSet.getInt(1));
+        tasks.add(task);
+      }
+
+
+    } catch (SQLException throwables) {
+      throw new RuntimeException(throwables);
+    }
+    return tasks;
   }
 
   public List<Task> findNewestTasks(Integer numberOfNewestTasks) {
-    return Collections.emptyList();
+    List<Task> tasks = new ArrayList<>();
+    String sql = "SELECT task_id, title, finished, created_date FROM task ORDER BY task_id DESC LIMIT 2";
+    try(Connection connection = dataSource.getConnection();
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql)
+    ) {
+
+      while(resultSet.next()) {
+        final Task task = new Task(
+                resultSet.getString(2),
+                resultSet.getBoolean(3),
+                resultSet.getTimestamp(4).toLocalDateTime()
+        );
+        task.setId(resultSet.getInt(1));
+        tasks.add(task);
+      }
+
+    } catch (SQLException throwables) {
+      throw new RuntimeException(throwables);
+    }
+
+    return tasks;
   }
 
   public Task finishTask(Task task) {
+    String sql = "UPDATE task SET finished = true WHERE task_id = "+task.getId();
+    try(
+            Connection connection = dataSource.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
+    ) {
+
+      statement.setBoolean(1,true);
+      task.setFinished(true);
+      statement.executeUpdate();
+
+      try(ResultSet resultSet = statement.getGeneratedKeys()) {
+        if (resultSet.next()) {
+          task.setId(resultSet.getInt(1));
+        }
+      }
+
+    } catch (SQLException throwables) {
+      throw new RuntimeException(throwables);
+    }
+
     return task;
   }
 
   public void deleteById(Integer id) {
+    String sql = "DELETE FROM task WHERE task_id = "+id;
+    try(
+            Connection connection = dataSource.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
+    ) {
+      
 
+    } catch (SQLException throwables) {
+      throw new RuntimeException(throwables);
+    }
   }
 }
